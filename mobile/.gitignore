@@ -103,7 +103,7 @@ build/
 .dart_tool/
 
 # Generated files
-*.g.dart
+# Note: *.g.dart files are committed to version control for CI/CD compatibility
 *.freezed.dart
 *.config.dart
 
