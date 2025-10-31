@@ -1,0 +1,72 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database (Production)
+  db:
+    image: postgres:16-alpine
+    container_name: wanderai-db-prod
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - wanderai-network-prod
+
+  # Redis Cache (Production)
+  redis:
+    image: redis:7-alpine
+    container_name: wanderai-redis-prod
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - wanderai-network-prod
+
+  # FastAPI Backend (Production)
+  backend:
+    image: ${DOCKER_REGISTRY}/wanderai-backend:${APP_VERSION}
+    container_name: wanderai-backend-prod
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      ENVIRONMENT: production
+      DEBUG: "false"
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_WEB_API_KEY: ${FIREBASE_WEB_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      PEXELS_API_KEY: ${PEXELS_API_KEY}
+      SECRET_KEY: ${SECRET_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - wanderai-network-prod
+
+volumes:
+  postgres_data_prod:
+
+networks:
+  wanderai-network-prod:
+    driver: bridge
