@@ -1,9 +1,11 @@
+import pytest
 from google import genai
 from google.genai import types
 from app.config import settings
 import asyncio
 
 
+@pytest.mark.asyncio
 async def test_gemini():
     """Test Gemini API connection by asking a simple question"""
     # Initialize the client with API key

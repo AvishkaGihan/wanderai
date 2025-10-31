@@ -2,7 +2,22 @@ import pytest
 import uuid
 from fastapi.testclient import TestClient
 from app.main import app
-from unittest.mock import Mock, patch
+from app.dependencies.auth import get_current_user
+from unittest.mock import Mock
+from app.models.user import User
+
+
+# Create a mock user for testing
+def mock_current_user_func():
+    mock_user = Mock(spec=User)
+    mock_user.id = uuid.uuid4()
+    mock_user.email = "test@example.com"
+    mock_user.firebase_uid = "test-firebase-uid"
+    return mock_user
+
+
+# Override the dependency at app level
+app.dependency_overrides[get_current_user] = mock_current_user_func
 
 client = TestClient(app)
 
@@ -10,14 +25,11 @@ client = TestClient(app)
 @pytest.fixture
 def mock_auth():
     """Mock authentication dependency to bypass Firebase check during tests"""
-    with patch("app.dependencies.auth.get_current_user") as mock:
-        # Set up a mock user that the route will receive
-        mock_user = Mock()
-        # Use a consistent UUID structure for testing purposes
-        mock_user.id = uuid.uuid4()
-        mock_user.email = "test@example.com"
-        mock.return_value = mock_user
-        yield mock
+    # The dependency override is set above, this fixture ensures it's active
+    yield
+    # Clean up after test
+    if get_current_user in app.dependency_overrides:
+        del app.dependency_overrides[get_current_user]
 
 
 def test_create_trip(mock_auth):
@@ -31,7 +43,7 @@ def test_create_trip(mock_auth):
         "status": "draft",
     }
 
-    # We send a dummy Authorization header, but the mock_auth fixture handles the actual check
+    # Send request with mocked auth
     response = client.post(
         "/v1/trips/", json=trip_data, headers={"Authorization": "Bearer test-token"}
     )
