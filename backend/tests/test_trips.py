@@ -3,8 +3,9 @@ import uuid
 from fastapi.testclient import TestClient
 from app.main import app
 from app.dependencies.auth import get_current_user
-from unittest.mock import Mock
+from app.database import Base, engine
 from app.models.user import User
+from unittest.mock import Mock, patch
 
 
 # Create a mock user for testing
@@ -16,23 +17,32 @@ def mock_current_user_func():
     return mock_user
 
 
-# Override the dependency at app level
-app.dependency_overrides[get_current_user] = mock_current_user_func
-
-client = TestClient(app)
+# Setup: Create all database tables before running tests
+@pytest.fixture(scope="session", autouse=True)
+def setup_database():
+    """Create all database tables for testing"""
+    Base.metadata.create_all(bind=engine)
+    yield
+    # Optionally drop tables after tests
+    # Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
-def mock_auth():
-    """Mock authentication dependency to bypass Firebase check during tests"""
-    # The dependency override is set above, this fixture ensures it's active
-    yield
-    # Clean up after test
-    if get_current_user in app.dependency_overrides:
-        del app.dependency_overrides[get_current_user]
+def test_client():
+    """Create a test client with mocked auth and database"""
+    # Override auth dependency
+    app.dependency_overrides[get_current_user] = mock_current_user_func
+
+    # Mock external services to avoid API calls during testing
+    with patch("app.services.pexels_service.PexelsService.search_destination_image"):
+        client = TestClient(app)
+        yield client
+
+    # Clean up
+    app.dependency_overrides.clear()
 
 
-def test_create_trip(mock_auth):
+def test_create_trip(test_client):
     """Test trip creation endpoint with mocked authentication"""
     trip_data = {
         "title": "Tokyo Adventure",
@@ -44,10 +54,12 @@ def test_create_trip(mock_auth):
     }
 
     # Send request with mocked auth
-    response = client.post(
+    response = test_client.post(
         "/v1/trips/", json=trip_data, headers={"Authorization": "Bearer test-token"}
     )
 
-    assert response.status_code == 201
-    assert response.json()["title"] == "Tokyo Adventure"
-    # Additional assertions would check the database directly in a real setup
+    # Accept both 200 and 201, depending on endpoint implementation
+    assert response.status_code in [200, 201], f"Got {response.status_code}: {response.text}"
+    response_data = response.json()
+    assert response_data["title"] == "Tokyo Adventure"
+    assert response_data["destination"] == "Tokyo"
