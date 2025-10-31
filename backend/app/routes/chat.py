@@ -42,18 +42,14 @@ async def send_chat_message(
     # The history is crucial for the AI to maintain context in the conversation
     recent_messages = (
         db.query(ChatMessage)
-        .filter(
-            ChatMessage.user_id == current_user.id, ChatMessage.session_id == session_id
-        )
+        .filter(ChatMessage.user_id == current_user.id, ChatMessage.session_id == session_id)
         .order_by(ChatMessage.timestamp.desc())
         .limit(10)
         .all()
     )
 
     # Reverse the order to feed chronological history to the AI service
-    context = [
-        {"role": msg.role, "content": msg.content} for msg in reversed(recent_messages)
-    ]
+    context = [{"role": msg.role, "content": msg.content} for msg in reversed(recent_messages)]
 
     # 3. Generate AI response
     gemini_service = GeminiService()
@@ -87,9 +83,7 @@ async def get_chat_history(
     """Get chat history for a session"""
     messages = (
         db.query(ChatMessage)
-        .filter(
-            ChatMessage.user_id == current_user.id, ChatMessage.session_id == session_id
-        )
+        .filter(ChatMessage.user_id == current_user.id, ChatMessage.session_id == session_id)
         .order_by(ChatMessage.timestamp.asc())
         .all()
     )
@@ -112,6 +106,4 @@ async def get_chat_sessions(
         .all()
     )
 
-    return [
-        {"session_id": s.session_id, "last_activity": s.timestamp} for s in sessions
-    ]
+    return [{"session_id": s.session_id, "last_activity": s.timestamp} for s in sessions]

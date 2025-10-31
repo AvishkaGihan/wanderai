@@ -14,9 +14,7 @@ class Expense(Base):
     __tablename__ = "expenses"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    trip_id = Column(
-        UUID(as_uuid=True), ForeignKey("trips.id", ondelete="CASCADE"), nullable=False
-    )
+    trip_id = Column(UUID(as_uuid=True), ForeignKey("trips.id", ondelete="CASCADE"), nullable=False)
     category = Column(String, nullable=False)
     amount = Column(DECIMAL(10, 2), nullable=False)
     currency = Column(String, default="USD")

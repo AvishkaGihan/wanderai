@@ -40,8 +40,6 @@ async def get_destination(destination_id: str, db: Session = Depends(get_db)):
     destination = db.query(Destination).filter(Destination.id == destination_id).first()
 
     if not destination:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Destination not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Destination not found")
 
     return destination
