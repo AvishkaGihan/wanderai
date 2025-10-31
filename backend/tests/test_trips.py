@@ -3,15 +3,19 @@ import uuid
 from fastapi.testclient import TestClient
 from app.main import app
 from app.dependencies.auth import get_current_user
-from app.database import Base, engine
+from app.database import Base, engine, SessionLocal
 from app.models.user import User
 from unittest.mock import Mock, patch
 
 
-# Create a mock user for testing
+# Create a consistent test user ID for use across tests
+TEST_USER_ID = uuid.uuid4()
+
+
+# Create a mock user for testing with the consistent ID
 def mock_current_user_func():
     mock_user = Mock(spec=User)
-    mock_user.id = uuid.uuid4()
+    mock_user.id = TEST_USER_ID
     mock_user.email = "test@example.com"
     mock_user.firebase_uid = "test-firebase-uid"
     return mock_user
@@ -30,6 +34,23 @@ def setup_database():
 @pytest.fixture
 def test_client():
     """Create a test client with mocked auth and database"""
+    # Create a test user in the database
+    db = SessionLocal()
+    try:
+        # Check if test user already exists
+        existing_user = db.query(User).filter(User.id == TEST_USER_ID).first()
+        if not existing_user:
+            test_user = User(
+                id=TEST_USER_ID,
+                firebase_uid="test-firebase-uid",
+                email="test@example.com",
+                display_name="Test User",
+            )
+            db.add(test_user)
+            db.commit()
+    finally:
+        db.close()
+
     # Override auth dependency
     app.dependency_overrides[get_current_user] = mock_current_user_func
 
