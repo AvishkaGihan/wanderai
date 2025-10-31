@@ -24,22 +24,13 @@ async def get_trip_expenses(
 ):
     """Get all expenses for a trip"""
     # Verify trip ownership for security
-    trip = (
-        db.query(Trip)
-        .filter(Trip.id == trip_id, Trip.user_id == current_user.id)
-        .first()
-    )
+    trip = db.query(Trip).filter(Trip.id == trip_id, Trip.user_id == current_user.id).first()
 
     if not trip:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
 
     expenses = (
-        db.query(Expense)
-        .filter(Expense.trip_id == trip_id)
-        .order_by(Expense.date.desc())
-        .all()
+        db.query(Expense).filter(Expense.trip_id == trip_id).order_by(Expense.date.desc()).all()
     )
 
     return expenses
@@ -58,16 +49,10 @@ async def add_expense(
 ):
     """Add an expense to a trip"""
     # Verify trip ownership
-    trip = (
-        db.query(Trip)
-        .filter(Trip.id == trip_id, Trip.user_id == current_user.id)
-        .first()
-    )
+    trip = db.query(Trip).filter(Trip.id == trip_id, Trip.user_id == current_user.id).first()
 
     if not trip:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
 
     db_expense = Expense(
         trip_id=trip_id,
@@ -85,9 +70,7 @@ async def add_expense(
     return db_expense
 
 
-@router.delete(
-    "/{trip_id}/expenses/{expense_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/{trip_id}/expenses/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_expense(
     trip_id: UUID,
     expense_id: UUID,
@@ -96,28 +79,16 @@ async def delete_expense(
 ):
     """Delete an expense"""
     # Verify trip ownership
-    trip = (
-        db.query(Trip)
-        .filter(Trip.id == trip_id, Trip.user_id == current_user.id)
-        .first()
-    )
+    trip = db.query(Trip).filter(Trip.id == trip_id, Trip.user_id == current_user.id).first()
 
     if not trip:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
 
     # Find the specific expense under that trip
-    expense = (
-        db.query(Expense)
-        .filter(Expense.id == expense_id, Expense.trip_id == trip_id)
-        .first()
-    )
+    expense = db.query(Expense).filter(Expense.id == expense_id, Expense.trip_id == trip_id).first()
 
     if not expense:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
 
     db.delete(expense)
     db.commit()
@@ -133,16 +104,10 @@ async def get_expense_summary(
 ):
     """Get expense summary for a trip (total spent, category breakdown)"""
     # Verify trip ownership
-    trip = (
-        db.query(Trip)
-        .filter(Trip.id == trip_id, Trip.user_id == current_user.id)
-        .first()
-    )
+    trip = db.query(Trip).filter(Trip.id == trip_id, Trip.user_id == current_user.id).first()
 
     if not trip:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
 
     expenses = db.query(Expense).filter(Expense.trip_id == trip_id).all()
 
