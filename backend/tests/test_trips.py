@@ -34,7 +34,9 @@ def test_client():
     app.dependency_overrides[get_current_user] = mock_current_user_func
 
     # Mock external services to avoid API calls during testing
-    with patch("app.services.pexels_service.PexelsService.search_destination_image"):
+    with patch(
+        "app.services.pexels_service.PexelsService.get_destination_image", return_value=None
+    ):
         client = TestClient(app)
         yield client
 
